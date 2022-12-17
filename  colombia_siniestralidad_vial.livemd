@@ -1,0 +1,94 @@
+# Colombia siniestralidad vial
+
+```elixir
+Mix.install([
+  {:vega_lite, "~> 0.1.5"},
+  {:kino_vega_lite, "~> 0.1.1"},
+  {:explorer, "~> 0.4.0"}
+])
+```
+
+## Siniestralidad vial
+
+```elixir
+alias VegaLite, as: Vl
+alias Explorer.{DataFrame, Series}
+```
+
+```elixir
+Vl.new()
+|> Vl.data_from_url("https://www.datos.gov.co/resource/rs3u-8r4q.json")
+|> Vl.mark(:bar)
+|> Vl.encode_field(:x, "departamento", type: :nominal, sort: "y")
+|> Vl.encode_field(:y, "fallecidos", aggregate: :sum)
+|> Vl.encode_field(:color, "departamento", type: :nominal)
+```
+
+```elixir
+# Fuente: https://www.saberespractico.com/demografia/poblacion-departamentos-colombia-2019/
+
+poblacion_por_dep =
+  %{
+    "Antioquía" => 6_768_388,
+    "Valle del Cauca" => 4_804_489,
+    "Cundinamarca" => 2_845_668,
+    "Atlántico" => 2_573_591,
+    "Bolívar" => 2_195_495,
+    "Santander" => 2_100_704,
+    "Nariño" => 1_830_473,
+    "Córdoba" => 1_813_854,
+    "Cesar" => 1_077_770,
+    "La Guajira" => 1_067_063,
+    "Cauca" => 1_426_938,
+    "Tolima" => 1_423_715,
+    "Norte de Santander" => 1_402_695,
+    "Magdalena" => 1_312_428,
+    "Boyacá" => 1_284_375,
+    "Huila" => 1_211_163,
+    "Meta" => 1_035_256,
+    "Caldas" => 995_822,
+    "Risaralda" => 972_978,
+    "Sucre" => 885_835,
+    "Quindío" => 578_268,
+    "Chocó" => 520_296,
+    "Caquetá" => 502_410,
+    "Casanare" => 381_554,
+    "Putumayo" => 363_597,
+    "Arauca" => 273_321,
+    "Guaviare" => 117_494,
+    "Amazonas" => 79_739,
+    "Vichada" => 79_134,
+    "San Andrés y Providencia" => 79_060,
+    "Vaupés" => 45_367,
+    "Guainía" => 44_134
+  }
+  |> Enum.into(%{}, fn {k, v} -> {String.upcase(k), v} end)
+  |> Enum.into([], fn {k, v} -> %{"departamento" => k, "poblacion" => v} end)
+```
+
+```elixir
+main = DataFrame.from_csv!("~/projects/colombia_siniestralidad_vial.csv")
+pobl = DataFrame.new(poblacion_por_dep)
+
+df = DataFrame.join(main, pobl)
+csv = DataFrame.dump_csv!(df)
+```
+
+## Fallecidos por 100k habitantes
+
+```elixir
+Vl.new()
+|> Vl.data_from_values(df)
+|> Vl.mark(:bar)
+|> Vl.transform(
+  calculate: "(datum.fallecidos/datum.poblacion)*100000",
+  as: "fallecidos_100mil"
+)
+|> Vl.encode_field(:x, "departamento", type: :nominal, sort: "y")
+|> Vl.encode_field(:y, "fallecidos_100mil",
+  type: :quantitative,
+  aggregate: :sum,
+  title: "Fallecidos/100k habitantes"
+)
+|> Vl.encode_field(:color, "departamento", type: :nominal)
+```
