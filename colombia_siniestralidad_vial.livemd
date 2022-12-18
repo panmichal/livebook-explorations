@@ -67,7 +67,8 @@ poblacion_por_dep =
 ```
 
 ```elixir
-main = DataFrame.from_csv!("~/projects/colombia_siniestralidad_vial.csv")
+path = "https://www.datos.gov.co/resource/rs3u-8r4q.csv"
+main = DataFrame.from_csv!(path)
 pobl = DataFrame.new(poblacion_por_dep)
 
 df = DataFrame.join(main, pobl)
